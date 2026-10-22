@@ -1,0 +1,323 @@
+{
+  "info": {
+    "name": "CampusFlow AI API",
+    "description": "Local CampusFlow API workflows. Import postman/campusflow-ai.postman_environment.json and follow docs/postman.md. Register creates STUDENT accounts only; coordinator requests need a coordinator/admin JWT. No request sends email.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "token", "value": "" },
+    { "key": "jobId", "value": "" },
+    { "key": "studentId", "value": "" },
+    { "key": "userEmail", "value": "student@example.com" },
+    { "key": "userPassword", "value": "ChangeThisPassword123!" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "API Health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Student",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Student\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.data && body.data.token) pm.environment.set('token', body.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Protected Test",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/protected-test"
+          }
+        },
+        {
+          "name": "Coordinator Role Test",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/coordinator-test"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Students",
+      "item": [
+        {
+          "name": "Create My Profile",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test Student\",\n  \"branch\": \"Computer Science\",\n  \"graduationYear\": 2027,\n  \"cgpa\": 8.2,\n  \"skills\": [\"Java\", \"SQL\", \"Node.js\"],\n  \"experience\": \"Student project experience\",\n  \"resumeText\": \"Optional plain-text resume content\"\n}"
+            },
+            "url": "{{baseUrl}}/students/profile"
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/students/profile"
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cgpa\": 8.5,\n  \"skills\": [\"Java\", \"SQL\", \"Spring Boot\"]\n}"
+            },
+            "url": "{{baseUrl}}/students/profile"
+          }
+        },
+        {
+          "name": "Import Student Profiles CSV",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"csv\": \"email,fullName,branch,graduationYear,cgpa,skills\\n{{userEmail}},Test Student,Computer Science,2027,8.5,Java;SQL;Spring Boot\"\n}"
+            },
+            "url": "{{baseUrl}}/students/import"
+          }
+        },
+        {
+          "name": "Export Student Profiles CSV",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/students/export"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "Create Job",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.data && body.data.job && body.data.job._id) pm.environment.set('jobId', body.data.job._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Example Co\",\n  \"title\": \"Software Engineer Intern\",\n  \"description\": \"Seeking students with Java and SQL. Computer Science, minimum CGPA 7.5, graduating in 2027.\",\n  \"deadline\": \"2027-03-31T23:59:59.000Z\",\n  \"extractedRequirements\": {\n    \"skills\": [\"Java\", \"SQL\", \"Problem Solving\"],\n    \"minCGPA\": 7.5,\n    \"branches\": [\"Computer Science\"],\n    \"graduationYears\": [2027],\n    \"location\": \"Pune\",\n    \"workMode\": \"Hybrid\"\n  },\n  \"matchingRules\": {\n    \"mustHaveSkills\": [\"Java\"],\n    \"preferredSkills\": [\"SQL\", \"Problem Solving\"],\n    \"preferredSkillThreshold\": 0.5\n  }\n}"
+            },
+            "url": "{{baseUrl}}/jobs"
+          }
+        },
+        {
+          "name": "List Jobs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/jobs?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Get Job",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/jobs/{{jobId}}"
+          }
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated role description.\",\n  \"matchingRules\": {\n    \"mustHaveSkills\": [\"Java\"],\n    \"preferredSkills\": [\"SQL\", \"Spring Boot\", \"AWS\"],\n    \"preferredSkillThreshold\": 0.5\n  }\n}"
+            },
+            "url": "{{baseUrl}}/jobs/{{jobId}}"
+          }
+        },
+        {
+          "name": "Extract Requirements (Advisory)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/jobs/{{jobId}}/extract-requirements"
+          }
+        },
+        {
+          "name": "Approve Requirements and Open Job",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requirements\": {\n    \"skills\": [\"Java\", \"SQL\", \"Problem Solving\"],\n    \"minCGPA\": 7.5,\n    \"branches\": [\"Computer Science\"],\n    \"graduationYears\": [2027],\n    \"location\": \"Pune\",\n    \"workMode\": \"Hybrid\",\n    \"additionalNotes\": \"Coordinator-reviewed criteria\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/jobs/{{jobId}}/approve-requirements"
+          }
+        },
+        {
+          "name": "Get Matches",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/jobs/{{jobId}}/matches"
+          }
+        },
+        {
+          "name": "Update Candidate Stage",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage\": \"SHORTLISTED\"\n}"
+            },
+            "url": "{{baseUrl}}/jobs/{{jobId}}/candidates/{{studentId}}"
+          }
+        },
+        {
+          "name": "Record Match Feedback",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"feedback\": \"USEFUL\",\n  \"feedbackReason\": \"The candidate meets the required technical criteria.\"\n}"
+            },
+            "url": "{{baseUrl}}/jobs/{{jobId}}/candidates/{{studentId}}"
+          }
+        },
+        {
+          "name": "Generate Candidate Drafts",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentIds\": [\"{{studentId}}\"],\n  \"type\": \"shortlist\"\n}"
+            },
+            "url": "{{baseUrl}}/jobs/{{jobId}}/candidates/communications"
+          }
+        },
+        {
+          "name": "Edit Candidate Draft",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"draft\": \"Hello Test Student,\\n\\nYou have been shortlisted for the Software Engineer Intern role at Example Co. The placement coordinator will share next steps.\\n\\nRegards,\\nPlacement Team\"\n}"
+            },
+            "url": "{{baseUrl}}/jobs/{{jobId}}/candidates/{{studentId}}/communication"
+          }
+        },
+        {
+          "name": "Mark Candidate Communication Sent",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/jobs/{{jobId}}/candidates/{{studentId}}/communication-sent"
+          }
+        },
+        {
+          "name": "Get Job Audit History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/jobs/{{jobId}}/audit"
+          }
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/jobs/{{jobId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Communications",
+      "item": [
+        {
+          "name": "Create Standalone Template Draft",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"interview-invite\",\n  \"context\": {\n    \"studentName\": \"Test Student\",\n    \"jobTitle\": \"Software Engineer Intern\",\n    \"companyName\": \"Example Co\",\n    \"deadline\": \"2027-03-31T23:59:59.000Z\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/communications/draft"
+          }
+        }
+      ]
+    }
+  ]
+}
